@@ -372,7 +372,7 @@ urlpatterns = [
 ]
 ```
 - 模板 `cbv_list_fix.html`
-```php+HTML
+```html
 <!DOCTYPE html>
 <html>
 <head>
