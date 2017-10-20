@@ -11,7 +11,7 @@ t.test()  # 正常调用实例方法
 t()  # 直接调用实例化之后的对象
 
 print('\n--------------------\n')
-class Fuck(object):
+class Fuck:
     def __init__(self, func):
         self.func = func
 
@@ -20,7 +20,7 @@ class Fuck(object):
         start_time = time.time()
         res = self.func(*args, **kwargs)
         end_time = time.time()
-        print('the function "%s" run time is %s' % (self.func.__name__,
+        print('函数在运行 "%s" 运行费时:  %s' % (self.func.__name__,
                                                     (end_time - start_time)))
         return res
 
