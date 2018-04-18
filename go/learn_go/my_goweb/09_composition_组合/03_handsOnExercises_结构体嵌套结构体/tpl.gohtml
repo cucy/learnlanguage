@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+
+
+<!-- PUT YOUR CODE HERE TO SHOW THE DATA-->
+{{range .}}
+
+    <h1>Academic Year {{.AcaYear}}</h1>
+    <h2>Semester: {{.Fall.Term}} </h2>
+    <h3>Courses</h3>
+    {{range .Fall.Courses}}
+        {{.Number}} - {{.Name}} - {{.Units}}
+    {{end}}
+
+    <h2>Semester: {{.Spring.Term}} </h2>
+    <h3>Courses</h3>
+    {{range .Spring.Courses}}
+        {{.Number}} - {{.Name}} - {{.Units}}
+    {{end}}
+
+        ==============================================
+{{end}}
+
+{{/*
+
+
+    <h1>Academic Year 2020-2021</h1>
+    <h2>Semester: Fall </h2>
+    <h3>Courses</h3>
+
+        CSCI-40 - Introduction to Programming in Go - 4
+
+        CSCI-130 - Introduction to Web Programming with Go - 4
+
+        CSCI-140 - Mobile Apps Using Go - 4
+
+
+    <h2>Semester: Spring </h2>
+    <h3>Courses</h3>
+
+        CSCI-50 - Advanced Go - 5
+
+        CSCI-190 - Advanced Web Programming with Go - 5
+
+        CSCI-191 - Advanced Mobile Apps With Go - 5
+
+
+        ==============================================
+
+
+    <h1>Academic Year 2021-2022</h1>
+    <h2>Semester: Fall </h2>
+    <h3>Courses</h3>
+
+        CSCI-40 - Introduction to Programming in Go - 4
+
+        CSCI-130 - Introduction to Web Programming with Go - 4
+
+        CSCI-140 - Mobile Apps Using Go - 4
+
+
+    <h2>Semester: Spring </h2>
+    <h3>Courses</h3>
+
+        CSCI-50 - Advanced Go - 5
+
+        CSCI-190 - Advanced Web Programming with Go - 5
+
+        CSCI-191 - Advanced Mobile Apps With Go - 5
+
+
+        ==============================================
+
+
+*/}}
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{{.Title}}</title>
+</head>
+<body>
+<h1>{{.Heading}}</h1>
+{{.Input}}
+
+
+<h1>Danger is escaped with html/template</h1>
+&lt;script&gt;alert(&#34;Yow!&#34;);&lt;/script
+{{/*
+对特殊字符串进行进行转换
+*/}}
+</body>
+</html>

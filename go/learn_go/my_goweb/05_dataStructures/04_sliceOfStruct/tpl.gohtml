@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<ul>
+{{range .}}
+    <li>{{.Name}} - {{.Motto}}</li>
+{{end}}
+{{/*
+	Adam := familyMember{
+		Name:  "Adam",
+		Motto: "What's for dinner?",
+	}
+	Hannah := familyMember{
+		Name:  "Hannah",
+		Motto: "I have too much homework.",
+	}
+	Darren := familyMember{
+		Name:  "Darren",
+		Motto: "Tea dear?",
+	}
+	Speckles := familyMember{
+		Name:  "Speckles",
+		Motto: "Pigeons on roof!",
+	}
+
+	myFamily := []familyMember{Adam, Hannah, Darren, Speckles}
+
+
+
+
+    <li>Adam - What's for dinner?</li>
+
+    <li>Hannah - I have too much homework.</li>
+
+    <li>Darren - Tea dear?</li>
+
+    <li>Speckles - Pigeons on roof!</li>
+
+*/}}
+
+</ul>
+</body>
+</html>
