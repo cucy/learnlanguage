@@ -148,10 +148,28 @@
 - Which files are considered system files?
 - Logging in Go
 - Putting data at the end of a file
+  - Altering existing data
 - About log files
+  - About logging
+  - Logging facilities 
+  - Logging levels 
+  - The syslog Go package
+  - Processing log files
+  - File permissions revisited
+    - Changing file permissions
+    - Finding other kinds of information about files
 - More pattern matching examples
+  - A simple pattern matching example
+  - An advanced example of pattern matching
+  - Renaming multiple files using regular expressions
 - Searching files revisited
+  - Finding the user ID of a user
+  - Finding all the groups a user belongs to 
+  - Finding files that belong or do not belong to a given user
+  - Finding files based on their permissions
 - Date and time operations
+  - Playing with dates and times
+  - Reformatting the times in a log file 
 - Rotating log files
 - Creating good random passwords
 - Another Go update
@@ -162,11 +180,20 @@
 
 - About Unix processes and signals
 - Process management
+  - About Unix signals 
 - Unix signals in Go
 - The kill(1) command
+  - A simple signal handler in Go
+  - Handling three different signals! 
+  - Catching every signal that can be handled
+  - Rotating log files revisited!
 - Improving file copying
 - Plotting data
 - Unix pipes in Go
+  - Reading from standard input
+  - Sending data to standard output 
+  - Implementing cat(1) in Go 
+  - The plotIP.go utility revisited
 - Unix sockets in Go
 - RPC in Go
 - Programming a Unix shell in Go
@@ -177,9 +204,20 @@
 9: GOROUTINES - BASIC FEATURES
 
 - About goroutines
+  - Concurrency and parallelism
 - The sync Go packages
+  - A simple example
+    - Creating multiple goroutines
+  - Waiting for goroutines to finish their jobs
+    - Creating a dynamic number of goroutines
+  - About channels 
+    - Writing to a channel 
+    - Reading from a channel
+    - Explaining h1s.go
 - Pipelines
 - A better version of wc.go
+  - Calculating totals
+  - Doing some benchmarking 
 - Exercises
 - Summary
 
@@ -191,10 +229,16 @@
 - Signal channels
 - Buffered channels
 - About timeouts
+  - An alternative way to implement timeouts
 - Channels of channels
 - Nil channels
 - Shared memory
+  - Using sync.Mutex
+  - sing sync.RWMutex
 - The dWC.go utility revisited
+  - Using a buffered channel
+  - Using shared memory
+  - More benchmarking 
 - Detecting race conditions
 - About GOMAXPROCS
 - Exercises
@@ -205,10 +249,20 @@
 - What is a web application?
 - About the net/http Go package
 - Developing web clients
+  - Fetching a single URL
+    - Setting a timeout
+  - Developing better web clients
 - A small web server
 - The html/template package
 - About JSON
+  - Saving JSON data 
+  - Parsing JSON data
+  - Using Marshal() and Unmarshal()
 - Using MongoDB
+  - Basic MongoDB administration
+  - Using the MongoDB Go driver
+  - Creating a Go application that displays MongoDB data
+  - Creating an application that displays MySQL data 
 - A handy command-line utility
 - Exercises
 - Summary
@@ -216,14 +270,29 @@
 12: NETWORK PROGRAMMING
 
 - About network programming
+  - About TCP/IP
+  - About TCP 
+    - The TCP handshake!
+  - About UDP and IP
+  - About Wireshark and tshark
+  - About the netcat utility
 - The net Go standard package
 - Unix sockets revisited
+  - A Unix socket server 
+  - A Unix socket client 
 - Performing DNS lookups
+  - Using an IP address as input
+  - Using a host name as input
+  - Getting NS records for a domain
 - Developing a simple TCP server
 - Developing a simple TCP client
+  - Using other functions for the TCP server
+  - Using alternative functions for the TCP client
 - Developing a simple UDP server
 - Developing a simple UDP client
 - A concurrent TCP server
 - Remote procedure call (RPC)
+  - An RPC server 
+  - An RPC client
 - Exercises
 - Summary
