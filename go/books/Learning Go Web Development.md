@@ -1,0 +1,85 @@
+# Learning Go Web Development
+
+- Chapter 1: Introducing and Setting Up Go
+	- Installing Go
+	- Importing packages
+		- Handling private repositories
+		- Dealing with versioning
+	- Introducing the net package
+		- Hello, Web
+		- Summary
+-  Serving and Routing
+	- Serving files directly
+	- Basic routing
+	- Using more complex routing with Gorilla
+	- Redirecting requests
+	-  Serving basic errors
+	- Summary
+- Connecting to Data
+	- Connecting to a database
+	- Creating a MySQL database
+	- Using GUID for prettier URLs
+	- Handling 404s
+    - Summary
+- Using Templates
+	- Introducing templates, context, and visibility
+	- HTML templates and text templates
+	- Displaying variables and security
+	- Using logic and control structures
+	- Summary
+- Frontend Integration with RESTful APIs
+	- Setting up the basic API endpoint
+	- RESTful architecture and best practices
+	- Creating our first API endpoint
+	- Implementing security
+	- Creating data with POST
+	- Modifying data with PUT
+	- Summary
+- Sessions and Cookies
+	- Setting cookies
+	- Capturing user information
+		- Creating users
+		- Enabling sessions
+		- Letting users register
+		- Letting users log in
+	- Initiating a server-side session
+		- Creating a store
+		- Utilizing flash messages
+	- Summary
+
+- Microservices and Communication
+	- Introducing the microservice approach
+	- Pros and cons of utilizing microservices
+	- Understanding the heart of microservices
+	- Communicating between microservices
+	- Putting a message on the wire
+	- Reading from another service
+    - Summary
+
+- Logging and Testing
+	- Introducing logging in Go
+	- Logging to IO
+	- Multiple loggers
+	- Formatting your output
+	- Using panics and fatal errors
+	- Introducing testing in Go
+	- Summary
+
+-  Security
+	- HTTPS everywhere – implementing TLS
+	- Preventing SQL injection
+	- Protecting against XSS
+	- Preventing cross-site request forgery (CSRF)
+	- Securing cookies
+	- Using the secure middleware
+   - Summary
+
+- Caching, Proxies and Improved Performance
+	- Identifying bottlenecks
+	- Implementing reverse proxies
+	- Implementing caching strategies
+	- Using Least Recently Used
+	- Caching by file
+	- Caching in memory
+	- Implementing HTTP/2
+	- Summary
