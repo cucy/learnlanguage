@@ -25,3 +25,9 @@ go tool compile -S main.go
 # 对象分布分析
 go tool compile -m xxx.go
 ```
+
+# 清除可执行文件测试文件
+
+```
+go  clean -x -i
+```
