@@ -76,3 +76,44 @@ func main() {
 }
 
 ```
+
+
+
+# fmt.Fprintf 
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Please provide a filename")
+		os.Exit(1)
+	}
+
+	filename := os.Args[1]
+
+	destination, err := os.Create(filename)
+	if err != nil {
+		fmt.Println("创建文件失败:", err)
+		os.Exit(1)
+	}
+	defer destination.Close()
+
+	fmt.Fprintf(destination, "[%s]:", filename)
+	fmt.Fprintf(destination, "使用 fmt.Fprintf 方法 in %s\n", filename)
+
+}
+
+/*
+$ go run fmtF.go test
+$ cat test
+[test]: Using fmt.Fprintf in test
+*/
+
+```
+
