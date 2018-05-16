@@ -294,4 +294,95 @@ ioutil 会自动打开关闭文件
 
 ```
 
+## 方法3 比较好的方式
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+)
+
+var BUFFERSIZE int64
+
+func Copy(src, dst string, BUFFERSIZE int64) error {
+	source_file_stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !source_file_stat.Mode().IsRegular() {
+		//  不是常规文件
+		return fmt.Errorf("%s is not a regular file.", src)
+	}
+
+	//  打开文件
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	// 写文件
+	_, err = os.Stat(dst)
+	if err == nil {
+		return fmt.Errorf("File %s already exists.", dst)
+	}
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	buf := make([]byte, BUFFERSIZE)
+	for {
+		// 读取文件
+		n, err := source.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		// 写入文件
+		if _, err := destination.Write(buf[:n]); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func main() {
+	if len(os.Args) != 4 {
+		fmt.Printf("usage: %s source destination BUFFERSIZE\n",
+			filepath.Base(os.Args[0]))
+		os.Exit(1)
+	}
+	source := os.Args[1]
+	destination := os.Args[2]
+	BUFFERSIZE, _ = strconv.ParseInt(os.Args[3], 10, 64)
+
+	fmt.Printf("Copying %s to %s\n", source, destination)
+	err := Copy(source, destination, BUFFERSIZE)
+	if err != nil {
+		fmt.Printf("File copying failed: %q\n", err)
+	}
+}
+
+/*
+go run main.go src_file des_file 1024
+Copying src_file to des_file
+
+
+*/
+
+```
 
