@@ -1,3 +1,4 @@
+[toc]
 
 # io pkg
 
@@ -180,6 +181,72 @@ func main() {
 $ go run fmtF.go test
 $ cat test
 [test]: Using fmt.Fprintf in test
+*/
+
+```
+
+# io.copy
+
+```go 
+package main
+
+import (
+	"fmt"
+	"io"
+	"os"
+)
+
+func Copy(src, dst string) (int64, error) {
+	source_file_stat, err := os.Stat(src)
+	if err != nil {
+		return 0, err
+	}
+	if !source_file_stat.Mode().IsRegular() {
+		// 是否是常规文件
+		return 0, fmt.Errorf("%s is not a regular file", src)
+	}
+
+	// 打开源文件
+	source, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer source.Close()
+
+	// 创建目标文件
+	destination, err := os.Create(dst)
+	if err != nil {
+		return 0, err
+	}
+	defer destination.Close()
+
+	n_bytes, err := io.Copy(destination, source)
+	return n_bytes, err
+
+}
+
+func main() {
+	if len(os.Args) != 3 {
+		fmt.Println("Please provide two command line arguments!")
+		os.Exit(1)
+	}
+	sourceFile := os.Args[1]
+	destinationFile := os.Args[2]
+
+	nBytes, err := Copy(sourceFile, destinationFile)
+
+	if err != nil {
+		fmt.Printf("The copy operation failed %q\n", err)
+	} else {
+		fmt.Printf("Copied %d bytes!\n", nBytes)
+	}
+}
+
+/*
+go run main.go src_file des_file
+Copied 22 bytes!
+
+
 */
 
 ```
