@@ -31,3 +31,10 @@ go tool compile -m xxx.go
 ```
 go  clean -x -i
 ```
+
+
+# go调试
+
+```
+GODEBUG=gctrace=1 go run main.go 
+```
