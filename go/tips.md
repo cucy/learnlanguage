@@ -16,3 +16,12 @@ fmt.Printf("%#v %T",x,x) // 12 int
 ```go
 	println(math.MinInt8, math.MaxInt8) // 	MaxInt8   = 1<<7 - 1 MinInt8   = -1 << 7
 ```
+
+# 汇编分析
+
+```
+go tool compile -S main.go 
+ 
+# 对象分布分析
+go tool compile -m xxx.go
+```
