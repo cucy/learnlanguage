@@ -41,3 +41,38 @@
 		block
 	}
 ```
+
+# 带有标签
+
+```go
+func test(table [][]string, x string) {
+	found := false
+	for row := range table {
+		for col := range table[row] {
+			if table[row][col] == x {
+				found = true
+				break
+			}
+			if found {
+				break
+			}
+		}
+	}
+}
+
+func test1(table [][]string, x string) {
+	var found bool = false
+FOUND:
+	for row := range table {
+		for column := range table[row] {
+			if table[row][column] == x {
+				found = true
+				break FOUND
+			}
+		}
+	}
+}
+
+```
+
+> 标签可以作用于for ,switch,select;  break continue goto 都可以使用
