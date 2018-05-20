@@ -1,3 +1,6 @@
+!(interface)[https://raw.githubusercontent.com/cucy/learnlanguage/master/go/learn_go/my/17_interfaces/img/interfacedfds.jpg]
+
+
 "Polymorphism is the ability to write code that can take on different behavior through the
  implementation of types. Once a type implements an interface, an entire world of
  functionality can be opened up to values of that type."
