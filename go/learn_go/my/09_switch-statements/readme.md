@@ -71,7 +71,7 @@ func BoundedUbt(min, max, val int) int {
 
 ```
 
-# 类型kaiguan
+# 类型开关
 
 ```go
 func classfier(items ...interface{}) {
