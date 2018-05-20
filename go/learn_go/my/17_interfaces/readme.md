@@ -1,4 +1,5 @@
-!(interface)[https://raw.githubusercontent.com/cucy/learnlanguage/master/go/learn_go/my/17_interfaces/img/interfacedfds.jpg]
+
+![interface](https://raw.githubusercontent.com/cucy/learnlanguage/master/go/learn_go/my/17_interfaces/img/interfacedfds.jpg)
 
 
 "Polymorphism is the ability to write code that can take on different behavior through the
