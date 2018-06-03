@@ -65,6 +65,23 @@ func MyServer(w http.ResponseWriter, req *http.Request) {
 }
 ```
 
+## 多个处理函数multiple Handlers
+
+```go 
+func main() {
+	newMux := http.NewServeMux()
+
+	newMux.HandleFunc("/randomFloat", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, rand.Float64())
+	})
+
+	newMux.HandleFunc("/randomInt", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, rand.Intn(100))
+	})
+	http.ListenAndServe(":8000", newMux)
+}
+```
+
 
 # 自定义多路径
 
@@ -123,4 +140,101 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 // http://localhost:8000/articles/1211fsdfs/1221
+```
+
+## 获取命令行输出
+
+```go 
+import (
+
+	"github.com/julienschmidt/httprouter"
+)
+
+func getFileContent(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	fmt.Fprintf(w, getCommandOutput("/bin/cat", params.ByName("name")))
+}
+
+func getCommandOutput(command string, arguments ...string) string {
+	//	 args... unpacks arguments array into elements
+	cmd := exec.Command(command, arguments...)
+
+	var (
+		out, stderr bytes.Buffer
+	)
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(fmt.Sprint(err) + ": " + stderr.String())
+	}
+	err = cmd.Wait()
+	if err != nil {
+		log.Fatal(fmt.Sprint(err) + ": " + stderr.String())
+
+	}
+	return out.String()
+}
+
+func goVersion(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	fmt.Fprintf(w, getCommandOutput("/usr/local/bin/go", "version"))
+}
+
+func main() {
+	router := httprouter.New()
+
+	// Mapping to methods is possible with HttpRouter
+	router.GET("/api/v1/go-version", goVersion)
+	// Path variable called name used here
+	router.GET("/api/v1/show-file/:name", getFileContent)
+	log.Fatal(http.ListenAndServe(":8000", router))
+
+}
+
+```
+
+## 文件服务器
+
+```go 
+func main() {
+	router := httprouter.New()
+	// Mapping to methods is possible with HttpRouter
+	router.ServeFiles("/static/*filepath", http.Dir("/Users/zrd/Desktop/go/go_path/src/learngo"))
+	log.Fatal(http.ListenAndServe(":8000", router))
+}
+```
+
+## 获取url参数
+
+```go 
+import (
+// ...
+	"github.com/gorilla/mux"
+)
+
+func QueryHandler(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Got parameter id:%s!\n", queryParams["id"][0])
+	fmt.Fprintf(w, "Got parameter category:%s!", queryParams["category"][0])
+}
+
+func main() {
+	// create a new router
+	r := mux.NewRouter()
+
+	// Attach an elegant path with handler
+	r.HandleFunc("/articles", QueryHandler)
+	r.Queries("id", "category")
+	srv := &http.Server{
+		Handler: r,
+		Addr:    "127.0.0.1:8000",
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
+}
+
+// https://github.com/PacktPublishing/Building-RESTful-Web-Services-with-Go/blob/master/Chapter02/queryParameters.go
+// http://localhost:8000/articles?id=0&category=jdnkndssadf1
 ```
