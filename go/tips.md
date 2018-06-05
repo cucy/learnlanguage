@@ -126,3 +126,89 @@ GODEBUG=gctrace=1 go run main.go
     // 你也可以使用`Fprintf`来将格式化后的值输出到`io.Writers`
     fmt.Fprintf(os.Stderr, "an %s\n", "error")
 ```
+
+
+## go get
+
+```go
+go  get -v -x  -u  github.com/gin-gonic/gin
+```
+
+## go   protobuf
+
+https://segmentfault.com/a/1190000010098194
+
+
+```go
+go get -u github.com/golang/protobuf/protoc-gen-go
+
+$ protoc --go_out=. ./proto/person.proto
+
+$ protoc --go_out=plugins=grpc:.  ./proto/person.proto
+
+$ protoc -I datafiles/ datafiles/transaction.proto --go_out=plugins=grpc:datafiles
+```
+
+
+```proto
+syntax = "proto3";
+package protofiles;
+
+
+message Person {
+    string name = 1;
+    int32 id = 2; // Unique ID number for this person.
+    string email = 3;
+    enum PhoneType {
+        MOBILE = 0;
+        HOME = 1;
+        WORK = 2;
+    }
+    message PhoneNumber {
+        string number = 1;
+        PhoneType type = 2;
+    }
+    repeated PhoneNumber phones = 4;
+}
+
+// Our address book file is just one of these.
+message AddressBook {
+    repeated Person people = 1;
+}
+```
+
+`main.go`
+
+```go
+package main
+
+import (
+	pb "zrdfuncer/gin_restfulapi/protofiles"
+	"github.com/golang/protobuf/proto"
+	"fmt"
+)
+
+func main() {
+	p := &pb.Person{
+		Id:    1234,
+		Name:  "zhangsan",
+		Email: "zhangsan@qq.com",
+		Phones: []*pb.Person_PhoneNumber{
+			{Number: "555-4321", Type: pb.Person_HOME},
+		},
+	}
+
+	p1 := &pb.Person{}
+
+	body, _ := proto.Marshal(p)
+	_ = proto.Unmarshal(body, p1)
+
+	fmt.Println("Original struct loaded from proto file:", p, "\n")
+	fmt.Println("Marshaled proto data: ", body, "\n")
+	fmt.Println("Unmarshaled struct: ", p1)
+}
+
+```
+
+
+
