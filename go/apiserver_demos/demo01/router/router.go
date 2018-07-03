@@ -2,8 +2,10 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"learnlanguage/go/apiserver_demos/demo01/handler"
+	`learnlanguage/go/apiserver_demos/demo01/handler/sd`
+	`learnlanguage/go/apiserver_demos/demo01/handler/user`
 	"learnlanguage/go/apiserver_demos/demo01/router/middleware"
+
 	"net/http"
 )
 
@@ -21,6 +23,11 @@ func Load(g *gin.Engine, mw ...gin.HandlerFunc) *gin.Engine {
 	g.NoRoute(func(c *gin.Context) {
 		c.String(http.StatusNotFound, "The incorrect API route.")
 	})
+	u := g.Group("/v1/user")
+	{
+		u.POST("", user.Create)
+	}
+
 
 	// The health check handlers
 	svcd := g.Group("/sd")

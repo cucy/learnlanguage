@@ -24,3 +24,24 @@ main.go 中的 main() 函数是 Go 程序的入口函数，在 main() 函数中�
       ...
   ```
   
+
+
+# demo04
+
+
+`curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user`
+
+``` 
+ curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"username":"admin"}'
+{"code":10001,"message":"password is empty"} 
+
+
+curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"password":"admin"}'
+{"code":20102,"message":"The user was not found. This is add message."}
+
+ curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"username":"admin","password":"admin"}'
+{"code":0,"message":"OK"}                              
+```
+
+
+
