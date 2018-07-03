@@ -43,5 +43,12 @@ curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d
 {"code":0,"message":"OK"}                              
 ```
 
+# demo06 读取request 返回response
+
+``` 
+curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/admin2?desc=test -d'{"username":"admin","password":"admin"}'
+
+```
+
 
 
