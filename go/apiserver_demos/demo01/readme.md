@@ -51,4 +51,52 @@ curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/ad
 ```
 
 
+# demo07创建用户逻辑
+
+``` 
+1.从 HTTP 消息体获取参数（用户名和密码）
+2.参数校验
+3.加密密码
+4.在数据库中添加数据记录
+5.返回结果（这里是用户名）
+
+```
+
+```json
+create user
+
+curl -XPOST -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"username":"kong","password":"kong123"}'
+
+
+
+get users
+
+curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"offset": 0, "limit": 20}'
+{"code":0,"message":"OK","data":{"totalCount":2,"userList":[{"id":2,"username":"kong","sayHello":"Hello M3d04aDiR","password":"$2a$10$nC7PnMjU2XsDHcbbnlodEujBBuKbrNG4vrvcNuzRCE.gMM3r7rBKC","createdAt":"2018-07-04 00:04:00","updatedAt":"2018-07-04 00:04:00"},{"id":1,"username":"admin","sayHello":"Hello M3dAVavmgz","password":"$2a$10$veGcArz47VGj7l9xN7g2iuT9TF21jLI1YGXarGzvARNdnt4inC9PG","createdAt":"2018-05-27 16:25:33","updatedAt":"2018-05-27 16:25:33"}]}}%
+
+
+
+get user details
+curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/kong
+{"code":0,"message":"OK","data":{"username":"kong","password":"$2a$10$nC7PnMjU2XsDHcbbnlodEujBBuKbrNG4vrvcNuzRCE.gMM3r7rBKC"}}
+
+update user 
+ curl -XPUT -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/2 -d'{"username":"kong","password":"kongmodify'
+{"code":0,"message":"OK","data":null}
+
+curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/kong
+{"code":0,"message":"OK","data":{"username":"kong","password":"$2a$10$MWxOY4U02Y2ixn7WLr.XS.6E40BpqtjYWhJL0gqSCv.EMZCXZPLq."}}
+
+    
+
+delete user 
+ curl -XDELETE -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user/2
+{"code":0,"message":"OK","data":null}            
+
+
+curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/v1/user -d'{"offset": 0, "limit": 20}'
+{"code":0,"message":"OK","data":{"totalCount":1,"userList":[{"id":1,"username":"admin","sayHello":"Hello JXpE4-vig","password":"$2a$10$veGcArz47VGj7l9xN7g2iuT9TF21jLI1YGXarGzvARNdnt4inC9PG","createdAt":"2018-05-27 16:25:33","updatedAt":"2018-05-27 16:25:33"}]}}%
+
+```
+
 
