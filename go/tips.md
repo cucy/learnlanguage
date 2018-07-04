@@ -4,6 +4,17 @@ go build -ldflags "-s -w -H=windowsgui"
 分别是：去符号表，去调试信息，去控制台
 ```
 
+
+```
+
+export GOOS=linux
+export GOARCH=amd64
+
+export GOPHERFACE_APP_ROOT=${GOPATH}/src/github.com/cucy/gopherface
+
+go build -o  ${GOPHERFACE_APP_ROOT}/builds/gopherface-linux64
+```
+
 # 汇编分析
 ```go
 go build -o ceshi /Users/zrd/Desktop/go/go_path/src/go_2018/2/hello_world2.go
