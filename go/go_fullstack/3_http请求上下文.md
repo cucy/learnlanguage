@@ -1,12 +1,12 @@
 
 
-```
+```go
 // main.go
 
-	http.Handle("/", middleware.ContextExampleHandler(middleware.PanicRecoveryHandler(ghandlers.LoggingHandler(os.Stdout, r))))
-
+http.Handle("/", middleware.ContextExampleHandler(middleware.PanicRecoveryHandler(ghandlers.LoggingHandler(os.Stdout, r))))
 ```
 
+# 设置
 ```go
 package middleware
 
@@ -31,7 +31,7 @@ func ContextExampleHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		defer func() {
-
+             // 设置值
 			ctx := newExampleContext(r.Context(), r)
 			next.ServeHTTP(w, r.WithContext(ctx))
 
@@ -40,13 +40,12 @@ func ContextExampleHandler(next http.Handler) http.Handler {
 	})
 
 }
-
 ```
 
 
 # 获取
 
-```
+```go
 package handlers
 
 import (
@@ -59,5 +58,4 @@ func FooHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fooID))
 
 }
-
 ```

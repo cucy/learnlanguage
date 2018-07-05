@@ -78,7 +78,7 @@
 
 `处理器`
 
-```
+```go
 package handlers
 
 import (
@@ -216,9 +216,8 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 
 `go  doc  http.Rrequest.FormValue`
 
-```
+```go
 s.FieldNames = []string{"username", "firstName", "lastName", "email"}
-
 ```
 
 `检查form`
@@ -296,7 +295,7 @@ func ValidateSignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm) {
 ```
 
 
-```
+```html
 // ProcessSignUpForm -> 用户登录成功后
 func ProcessSignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm) {
 
@@ -405,7 +404,7 @@ func DisplaySignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm) {
 
 `model`
 
-```
+```go
 // 表情
 // All possible mood states.
 const (
@@ -438,7 +437,7 @@ func init() {
 }
 ```
 
-```
+```go
 package handlers
 
 import (

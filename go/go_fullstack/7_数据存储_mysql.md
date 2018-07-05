@@ -1,13 +1,12 @@
 
 # mysql
 
-```
+```go
 /* *****************************************************************************
 // Setup preferences
 // ****************************************************************************/
-SET NAMES utf8 COLLATE 'utf8_unicode_ci';
-SET time_zone = '-07:00';
-SET CHARACTER SET utf8;
+// SET NAMES utf8 COLLATE 'utf8_unicode_ci';
+// SET CHARACTER SET utf8;
 
 /* *****************************************************************************
 // Remove database (if it already exists)
@@ -17,7 +16,7 @@ DROP DATABASE IF EXISTS gopherfacedb;
 /* *****************************************************************************
 // Create new database
 // ****************************************************************************/
-CREATE DATABASE gopherfacedb DEFAULT CHARSET = utf8 COLLATE = utf8_unicode_ci;
+CREATE DATABASE gopherfacedb ;
 USE gopherfacedb;
 
 /* *****************************************************************************
@@ -41,7 +40,7 @@ CREATE TABLE user (
 
 `定义模型`
 
-```
+```go
 package models
 
 import (
@@ -74,7 +73,7 @@ func NewUser(username string, firstName string, lastName string, email string, p
 
 `连库`
 
-```
+```go
 package datastore
 
 import (
@@ -113,7 +112,7 @@ func NewDatastore(datastoreType int, dbConnectionString string) (Datastore, erro
 ```
 
 
-```
+```go
 package datastore
 
 import (
@@ -198,7 +197,7 @@ func (m *MySQLDatastore) Close() {
 
 ```
 
-```
+```go
 初始化数据库
 	db, err := datastore.NewDatastore(datastore.MYSQL, "gopherface:gopherface@/gopherfacedb")
 
@@ -214,7 +213,7 @@ func (m *MySQLDatastore) Close() {
 
 ```
 
-```
+```go
 // 接收env 到请求里
 func SignUpHandler(e *common.Env) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +239,7 @@ func SignUpHandler(e *common.Env) http.Handler {
 
 `使用`
 
-```
+```go
 // 函数签名 接收mysql连接信息
 func ValidateSignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm, e *common.Env) {
 
@@ -254,7 +253,7 @@ func ValidateSignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm, e
 
 ```
 
-```
+```go
 // ProcessSignUpForm
 func ProcessSignUpForm(w http.ResponseWriter, r *http.Request, s *SignUpForm, e *common.Env) {
 
