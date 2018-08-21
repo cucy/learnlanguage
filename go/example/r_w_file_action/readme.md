@@ -384,5 +384,51 @@ Copying src_file to des_file
 
 */
 
+## io.Open
+
 ```
 
+
+func main() {
+
+	f, err := Readfile(`./textfile.log`)
+
+	if err!=nil{
+		fmt.Println(err)
+	}
+
+	fmt.Print(string(f))
+
+}
+
+func Readfile(fname string) ([]byte, error) {
+	file, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	buf := make([]byte, 1024) //  一次读取1024字节
+	tmp_read := make([]byte, 1024) //  读取结果暂存
+FILE_READ:
+	for {
+		n, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		if n == 0 {
+			break FILE_READ
+		}
+		tmp_read = append(tmp_read, buf[:n]...)
+	}
+
+	return tmp_read, nil
+
+}
+
+
+
+```go
+
+
+```
