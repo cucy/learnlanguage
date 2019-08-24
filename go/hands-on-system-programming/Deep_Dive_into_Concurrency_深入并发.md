@@ -153,6 +153,470 @@ In order to avoid the error of the captured loop variable, it's better to pass t
 如果我们运行这个程序，我们可以看到go编译器在循环中发出警告：循环变量i被func-literal捕获。
 循环中的变量在我们定义的函数中被引用。Gorooutines的创建循环比Gorooutines的执行速度快，结果是循环在单个Gorooutine启动之前完成，从而在最后一个iter之后打印循环变量的值。。
 为了避免捕获循环变量的错误，最好将同一变量作为参数传递给闭包。Goroutine函数的参数在创建时进行评估，这意味着对该变量的更改不会反映在Goroutine中，除非传递对某个值（如指针、映射、切片、通道或函数）的引用。通过运行以下示例，我们可以看到这种差异：
+
+func main() {
+    var a int
+    // passing value
+    go func(v int) { fmt.Println(v) }(a)
+  
+    // passing pointer
+    go func(v *int) { fmt.Println(*v) }(&a)
+  
+    a = 42
+    time.Sleep(time.Nanosecond)
+}
 ```
 
+
+# Synchronization 同步
+
+Goroutines allow code to be executed concurrently, but the synchronization between values is not ensured out of the box. We can check out what happens when trying to use a variable concurrently with the following example:
+
+```
+Goroutines允许同时执行代码，但不能确保值之间的同步。我们可以通过下面的示例来检查在同时使用变量时会发生什么情况：
+
+func main() {
+	var i int
+	go func(i *int) {
+		for j := 0; j < 20; j++ {
+			time.Sleep(time.Millisecond)
+			fmt.Println("in: ",*i, j)
+		}
+	}(&i)
+	for i = 0; i < 20; i++ {
+		time.Sleep(time.Millisecond)
+		fmt.Println(i)
+	}
+}
+
+
+in:  0 0
+0
+1
+in:  2 1
+in:  2 2
+2
+3
+in:  3 3
+4
+in:  4 4
+in:  5 5
+...
+```
+
+We have an integer variable that changes in the main routine—doing a millisecond pause between each operation—and after the change, the value is printed.
+
+In another goroutine, there is a similar loop (using another variable) and another print statement that compares the two values. Considering that the pauses are the same, we would expect to see the same values, but this is not the case. We see that sometimes, the two goroutines are out of sync.
+
+The changes are not reflected immediately because the memory is not synchronized instantaneously. We will learn how to ensure data synchronization in the next chapter.
+
+``` 
+我们有一个整型变量，它在主程序中改变，在每次操作之间做一个毫秒的停顿，在改变之后，值被打印出来。
+在另一个goroutine中，有一个类似的循环（使用另一个变量）和另一个print语句来比较这两个值。考虑到停顿是相同的，我们希望看到相同的值，但事实并非如此。我们看到，有时两个Goroutine是不同步的。
+更改不会立即反映出来，因为内存没有立即同步。我们将在下一章中学习如何确保数据同步。
+```
+
+# Exploring channels
+
+Channels are a concept that is unique to Go and a few other programming languages. Channels are very powerful tools that allow a simple method for synchronizing different goroutines, which is one of the ways we can solve the issue raised by the previous example.
+
+```
+Channels是Go和其他一些编程语言所独有的概念。通道是非常强大的工具，它允许使用一种简单的方法来同步不同的goroutine，这是我们解决前一个示例提出的问题的方法之一。
+```
+
+
+# Properties and operations
+
+A channel is a built-in type in Go that is typed as arrays, slices, and maps. It is presented in the form of chan type and initialized by the make function.
+
+```
+属性和操作
+通道是内置的go类型，它被类型化为数组、切片和映射。它以chan类型的形式呈现，并由make函数初始化。
+```
+
+# Capacity and size
+
+As well as the type that is traveling through the channel, there is another property that the channel has: its capacity. This represents the number of items a channel can hold before any new attempt to send an item is made, resulting in a blocking operation. The capacity of the channel is decided at its creation and its default value is 0:
+
+```
+除了通过通道的类型外，通道还具有另一个属性：容量。这表示在进行任何新的发送项目尝试之前，通道可以保留的项目数，从而导致阻塞操作。通道的容量在创建时确定，其默认值为0:
+```
+
+// channel with implicit zero capacity
+var a = make(chan int)
+
+// channel with explicit zero capacity
+var a = make(chan int, 0)
+
+// channel with explicit capacity
+var a = make(chan int, 10)
+
+```go
+//具有隐式零容量的通道
+var a=品牌（chan int）
+
+//具有显式零容量的通道
+var a=制造（chan int，0）
+
+//具有显式容量的通道
+var a=品牌（chan int，10）
+```
+
+
+The capacity of the channel cannot be changed after its creation and can be read at any time using the built-in cap function:
+
+```
+通道的容量在创建后无法更改，可以使用内置的cap功能随时读取：
+
+func main() {
+    var (
+        a = make(chan int, 0)
+        b = make(chan int, 5)
+    )
+
+    fmt.Println("a is", cap(a))
+    fmt.Println("b is", cap(b))
+}
+```
+
+
+The len function, when used on a channel, tells us the number of elements that are held by the channel:
+
+```
+当在通道上使用len函数时，它告诉我们通道所包含的元素数：
+
+func main() {
+	var (
+		a = make(chan int, 5)
+	)
+	for i := 0; i < 5; i++ {
+		a <- i
+		fmt.Println("a is", len(a), "/", cap(a))
+	}
+}
+
+a is 1 / 5
+a is 2 / 5
+a is 3 / 5
+a is 4 / 5
+a is 5 / 5
+
+```
+
+
+
+# Blocking operations
+
+If a channel is full or its capacity is 0, then the operation will block. If we take the last example, which fills the channel and tries to execute another send operation, our application gets stuck:
+
+```
+如果通道已满或其容量为0，则操作将被阻止。如果我们以最后一个例子为例，它填充通道并尝试执行另一个发送操作，那么我们的应用程序会卡住：
+
+func main() {
+	var a = make(chan int, 5)
+	for i := 0; i < 5; i++ {
+		a <- i
+		fmt.Println("a is", len(a), "/", cap(a))
+	}
+	a <- 0 // 阻塞,死锁
+}
+```
+
+When all goroutines are locked (in this specific case, we only have the main goroutine), the Go runtime raises a deadlock—a fatal error that terminates the execution of the application:
+
+```
+当所有Goroutine都被锁定时（在这种特定情况下，我们只有主Goroutine），Go运行时会引发死锁，这是一个致命错误，它会终止应用程序的执行：
+```
+
+This is can happen with both receive or send operations, and it's the symptom of an error in the application design. Let's take the following example:
+
+```
+这在接收或发送操作中都会发生，这是应用程序设计中出现错误的症状。让我们举个例子：
+
+func main() {
+	var a = make(chan int)
+	a <- 10
+	fmt.Println("a is", <-a, "/", cap(a))
+}
+
+// fatal error: all goroutines are asleep - deadlock!
+
+```
+
+
+In the previous example, there is the a <- 10 send operation and the matching <-a receive operation, but nevertheless, it results in a deadlock. However, the channel we created has no capacity, so the first send operation will block. We can intervene here in two ways:
+
+By increasing the capacity: This is a pretty easy solution that involves initializing the channel with make(chan int, 1). It works best only if the number of receivers is known a priori; if it is higher than the capacity, then the problem appears again.
+By making the operations concurrent: This is a far better approach because it uses the channels for what they made for—concurrency.
+
+```
+在前面的示例中，有一个<-10发送操作和一个匹配的<-a接收操作，但是它会导致死锁。但是，我们创建的通道没有容量，因此第一个发送操作将阻塞。我们可以通过两种方式进行干预：
+通过增加容量：这是一个非常简单的解决方案，涉及使用make初始化通道（chan int，1）。只有事先知道接收器的数量，它才能发挥最佳效果；如果它高于容量，则问题再次出现。
+通过使操作并发：这是一种更好的方法，因为它使用通道来实现并发。
+
+func main() {
+    var a = make(chan int)
+    go func() {
+        a <- 10
+    }()
+    fmt.Println(<-a)
+}
+
+```
+
+Now, we can see that there are no deadlocks here and the program prints the values correctly. Using the capacity approach will also make it work, but it will be tailored to the fact that we are sending a single message, while the other method will allow us to send any number of messages through the channel and receive them accordingly from the other side:
+
+```
+现在，我们可以看到这里没有死锁，程序正确地打印了值。使用容量方法也可以使其工作，但它将根据我们发送单个消息的事实进行调整，而另一种方法将允许我们通过通道发送任意数量的消息，并相应地从另一方接收这些消息：
+
+func main() {
+    const max = 10
+    var a = make(chan int)
+
+    go func() {
+        for i := 0; i < max; i++ {
+            a <- i
+        }
+    }()
+    for i := 0; i < max; i++ {
+        fmt.Println(<-a)
+    }
+}
+```
+
+We now have a constant to store the number of operations executed, but there is a better and more idiomatic way to let a receiver know when there are no more messages. We will cover this in the next chapter about synchronization.
+
+```
+我们现在有一个常量来存储执行的操作数，但是有一种更好、更惯用的方法来让接收者知道何时没有更多的消息。我们将在下一章讨论同步。
+```
+
+
+# Closing channels
+
+The best way of handling the end of a synchronization between a sender and a receiver is the close operation. This function is normally executed by the sender because the receiver can verify whether the channel is still open each time it gets a value using a second variable:
+
+``` 
+处理发送方和接收方之间同步结束的最佳方法是关闭操作。此函数通常由发送方执行，因为接收方可以使用第二个变量验证每次获取值时通道是否仍然打开：
+
+value,ok:= <-ch
+```
+
+The second receiver is a Boolean that will be true if the channel is still open, and false otherwise. When a receive operation is done on a close channel, the second received variable will have the false value, and the first one will have the 0 value of the channel type, such as these:
+
+0 for numbers
+false for Booleans
+"" for strings
+nil for slices, maps, or pointers
+
+
+```
+第二个接收器是一个布尔值，如果通道仍然打开，则为真，否则为假。当在关闭通道上执行接收操作时，第二个接收变量将具有假值，第一个接收变量将具有通道类型的0值，例如：
+0代表数字
+布尔值为假
+对于字符串
+切片、映射或指针为零
+
+
+```
+
+The example of sending multiple messages can be rewritten using the close function, without having prior knowledge of how many messages will be sent:
+
+```
+发送多条消息的示例可以使用close函数重写，而不必事先知道将发送多少条消息：
+
+func main() {
+	const max = 10
+	var a = make(chan int)
+	go func() {
+		for i := 0; i < max; i++ {
+			a <- i
+		}
+		close(a)
+	}()
+
+	for {
+		v, ok := <-a
+		if !ok {
+			break
+		}
+		fmt.Println(v)
+	}
+}
+```
+
+
+There is a more synthetic and elegant way to receive a message from a channel until it's closed: by using the same keyword that we used to iterate maps, arrays, and slices. This is done through range:
+
+```
+有一种更为综合和优雅的方式来接收来自通道的消息，直到它关闭：使用我们用于迭代映射、数组和切片的相同关键字。这是在整个范围内完成的：
+
+for v := range a {
+    fmt.Println(v)
+}
+```
+
+
+# One-way channels
+
+Another possibility when handling channel variables is specifying whether they are only for sending or only for receiving data. This is indicated by the <- arrow, which will precede chan if it's just for receiving, or follow it if it's just for sending:
+
+```
+处理通道变量时的另一种可能性是指定它们是仅用于发送还是仅用于接收数据。这是由<-箭头指示的，如果只是接收，它将位于chan之前，如果只是发送，则跟随它：
+
+func main() {
+	var a = make(chan int)
+	s, r := (chan<- int )(a), (<-chan int )(a)
+	fmt.Printf("%T  %T", s, r)
+}
+
+// chan<- int  <-chan int
+```
+
+Channels are already pointers, so casting one of them to its send-only or receive-only version will return the same channel, but will reduce the number of operations that can be performed on it. The types of channels are as follows:
+
+Send only channels, chan<-, which will allow you to send items, close the channel, and prevent you from sending data with a compile error.
+Receive only channel, <-chan, that will allow you to receive data, and any send or close operations will be compiling errors.
+When a function argument is a send/receive channel, the conversion is implicit and it is a good practice to adopt because it prevents mistakes such as closing the channel from the receiver. We can take the other example and make use of the one-way channels with some refactoring.
+
+```
+通道已经是指针，因此将其中一个通道强制转换为其只发送或只接收版本将返回相同的通道，但将减少可以对其执行的操作数。信道类型如下：
+只发送频道，chan<-，这将允许您发送项目，关闭频道，并阻止您发送带有编译错误的数据。
+只接收通道<-chan，允许您接收数据，任何发送或关闭操作都将编译错误。
+当函数参数是发送/接收通道时，转换是隐式的，采用转换是一个很好的实践，因为它可以防止错误，例如从接收器关闭通道。我们可以举另一个例子，利用单向通道进行重构。
+```
+
+We can also create a function for sending values that uses a send-only channel:
+
+```
+我们还可以创建一个函数来发送使用只发送通道的值：
+
+func send(ch chan<- int, max int) {
+	for i := 0; i < max; i++ {
+		ch <- i
+	}
+	close(ch)
+}
+```
+
+```
+Do the same thing for receiving using a receive-only channel:
+
+func receive(ch <-chan int) {
+	for v := range ch {
+		fmt.Println(v)
+	}
+}
+```
+
+And then, use them with the same channel that will be automatically converted in the one-way version:
+
+然后，将它们与将在单向版本中自动转换的相同通道一起使用：
+
+```
+func main() {
+    var a = make(chan int)
+
+    go send(a, 10)
+  
+    receive(a)
+}
+```
+
+
+# Waiting receiver
+
+
+Most of the examples we saw in the previous section had the sending operations done in a goroutine, and had the receiving operations done in the main goroutine. It could be the case that all operations are handled by goroutines, so do we synchronize the main one with the others?
+
+A typical technique is the use of another channel used for the sole purpose of signaling that a goroutine has finished its job. The receiving goroutine knows that there are no more messages to get with the closure of the communication channel and it closes another channel that is shared with the main goroutine after finishing its operation. The main function can wait for the closure of the channel before exiting.
+
+The typical channel that is used for this scope does not carry any additional information except for whether it is open or closed, so it is usually a chan struct{} channel. This is because an empty data structure has no size in memory. We can see this pattern in action by making some changes to the previous example, starting with the receiver function:
+
+```
+我们在上一节中看到的大多数示例都是在goroutine中执行发送操作，而在主goroutine中执行接收操作。可能是所有操作都由goroutines处理，那么我们是否将主操作与其他操作同步？
+
+一种典型的技术是使用另一个通道，唯一的目的是通知Gorotine已经完成了它的工作。接收Goroutine知道通信通道关闭后没有更多的消息可获取，并且在完成操作后关闭与主Goroutine共享的另一个通道。主功能可以在退出前等待通道关闭。
+
+用于此作用域的典型通道不包含任何附加信息，除了它是打开的还是关闭的，因此它通常是chan结构通道。这是因为空数据结构在内存中没有大小。我们可以通过对前一个示例进行一些更改，从receiver函数开始，看到这个模式正在运行：
+
+func receive(ch <-chan int, done chan<- struct{}) {
+	for v := range ch {
+		println(v)
+	}
+	close(done)
+}
+
+```
+
+The receiver function gets an extra argument—the channel. This is used to signal that the sender is done and the main function will use that channel to wait for the receiver to end its task
+
+```
+receiver函数在通道中获得一个额外的参数。这用于表示发送方已完成，主功能将使用该通道等待接收方结束其任务。
+
+func send(ch chan<- int, max int) {
+	for i := 0; i < max; i++ {
+		ch <- i
+	}
+	close(ch)
+}
+
+func receive(ch <-chan int, done chan<- struct{}) {
+	for v := range ch {
+		fmt.Println(v)
+	}
+	close(done)
+}
+
+func main() {
+	a := make(chan int)
+	go send(a, 10)
+	done := make(chan struct{})
+	go receive(a, done)
+	<-done
+}
+```
+
+
+# Special values
+
+There are a couple of situations in which channels behave differently. We will now see what happens when a channel is set to its zero value—nil—or when it is already closed.
+  
+```
+
+特殊值
+在一些情况下，通道的行为会有所不同。现在我们将看到当一个通道设置为零值nil或当它已经关闭时会发生什么.
+```  
+
+If we create a very simple app that tries to send to an empty channel, we get a deadlock:
+
+```
+func main() {
+	var a chan int
+	a <- 1
+}
+```
+
+If we do the same for a receiving operation, we get the same result of a deadlock:
+
+```
+如果对接收操作执行相同的操作，则会得到相同的死锁结果：
+
+
+func main() {
+    var a chan int
+    <-a
+}
+
+```
+
+The last thing left to check is how the close function behaves with a nil channel. It panics with the close of nil channel explicit value:
+
+```
+最后要检查的是close函数在nil通道中的行为。当接近零通道显式值时会恐慌：
+
+func main() {
+    var a chan int
+    close(a)
+}
+```
 
