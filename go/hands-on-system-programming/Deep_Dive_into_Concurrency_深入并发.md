@@ -4427,8 +4427,734 @@ We can create a small application that counts the occurrence of words which appe
 我们可以创建一个小应用程序，用这种方法计算出现在一段文本中的单词的出现次数。让我们创建一个初始的生产者阶段，它从一个作者处读取并返回该行的一部分单词：
 
 
+func SourceLineWords(ctx context.Context, r io.ReadCloser) <-chan []string {
+    ch := make(chan []string)
+    go func() {
+        defer func() { r.Close(); close(ch) }()
+        b := bytes.Buffer{}
+        s := bufio.NewScanner(r)
+        for s.Scan() {
+            b.Reset()
+            b.Write(s.Bytes())
+            words := []string{}
+            w := bufio.NewScanner(&b)
+            w.Split(bufio.ScanWords)
+            for w.Scan() {
+                words = append(words, w.Text())
+            }
+            select {
+            case <-ctx.Done():
+                return
+            case ch <- words:
+            }
+        }
+    }()
+    return ch
+}
 ```
 
+In order to use the first stage as a source for more than one instance of the second stage, we just need to create more than one counting stage with the same input channel:
+
+```
+为了将第一阶段用作第二阶段的多个实例的源，我们只需要创建具有相同输入通道的多个计数阶段：
+
+ctx, canc := context.WithCancel(context.Background())
+defer canc()
+src := SourceLineWords(ctx,   
+    ioutil.NopCloser(strings.NewReader(cantoUno)))
+count1, count2 := WordOccurrence(ctx, src), WordOccurrence(ctx, src)
+```
+
+# Fan-in
+Demuxing is a little bit more complicated because we don't need to receive data blindly in one goroutine or another – we actually need to synchronize a series of channels. A good approach to avoid race conditions is to create another channel where all the data from the various input channels will be received. We also need to make sure that this merge channel gets closed once all the channels are done. We also have to keep in mind that the channel will be closed if the context is cancelled. We are using sync.Waitgroup here to wait for all the channels to finish:
+
+解组有点复杂，因为我们不需要在一个或另一个goroutine中盲目地接收数据——我们实际上需要同步一系列通道。避免竞争条件的一个好方法是创建另一个通道，在该通道中将接收来自不同输入通道的所有数据。我们还需要确保在完成所有通道后关闭此合并通道。我们还必须记住，如果上下文被取消，通道将被关闭。我们在这里使用sync.waitgroup等待所有频道完成：
+
+```
+wg := sync.WaitGroup{}
+merge := make(chan map[string]int)
+wg.Add(len(src))
+go func() {
+    wg.Wait()
+    close(merge)
+}()
+```
+
+The problem is that we have two possible triggers for closing the channel: regular transmission ending and context cancelling.
+
+We have to make sure that if the context ends, no message is sent to the outbound channel. Here, we are collecting the values from the input channels and sending them to the merge channel, but only if the context isn't complete. We do this in order to avoid a send operation being sent to a closed channel, which would make our application panic:
+
+问题是我们有两个关闭通道的可能触发器：常规传输结束和上下文取消。
+我们必须确保如果上下文结束，就不会向出站通道发送消息。这里，我们从输入通道收集值并将其发送到合并通道，但前提是上下文不完整。我们这样做是为了避免发送操作被发送到一个关闭的通道，这将使我们的应用程序恐慌：
+
+```
+for _, ch := range src {
+    go func(ch <-chan map[string]int) {
+        defer wg.Done()
+        for v := range ch {
+            select {
+            case <-ctx.Done():    
+                return
+            case merge <- v:
+            }
+        }
+    }(ch)
+}
+```
+
+Finally, we can focus on the last operation, which uses the merge channel to execute our final word count:
+最后，我们可以将重点放在最后一个操作上，它使用合并通道来执行最终的字数计数：
+
+```
+count := make(map[string]int)
+for {
+    select {
+    case <-ctx.Done():
+        return count
+    case c, ok := <-merge:
+        if !ok {
+            return count
+        }
+        for k, v := range c {
+            count[k] += v
+        }
+    }
+}
+
+```
+
+The application's main function, with the addition of the fan-in, will look as follows:
+应用程序的主要功能，加上扇入，如下所示：
+
+```
+func main() {
+    ctx, canc := context.WithCancel(context.Background())
+    defer canc()
+    src := SourceLineWords(ctx, ioutil.NopCloser(strings.NewReader(cantoUno)))
+    count1, count2 := WordOccurrence(ctx, src), WordOccurrence(ctx, src)
+    final := MergeCounts(ctx, count1, count2)
+    fmt.Println(final)
+}
+```
+
+We can see that the fan-in is the most complex and critical part of the application. Let's recap the decisions that helped build a fan-in function that is free from panic or deadlock:
+
+Use a merge channel to collect values from the various input.
+Have sync.WaitGroup with a counter equal to the number of input channels.
+Use it in a separate goroutine and wait for it to close the channel.
+For each input channel, create a goroutine that transfers the values to the merge channel.
+Ensure that you send the record only if the context is not complete.
+Use the wait group's done function before exiting such a goroutine.
+Following the preceding steps will allow us to use the merge channel with a simple range. In our example, we are also checking whether the context is complete before receiving from the channel in order to allow for an early exit from the goroutine.
+
+```
+我们可以看到，扇入是应用程序中最复杂和最关键的部分。让我们回顾一下有助于构建无恐慌或死锁的扇入函数的决策：
+使用合并通道从各种输入中收集值。
+使sync.waitgroup的计数器等于输入通道的数目。
+在单独的goroutine中使用它，并等待它关闭通道。
+对于每个输入通道，创建一个将值传输到合并通道的goroutine。
+确保仅在上下文不完整时发送记录。
+在退出此类goroutine之前，请使用wait group的done函数。
+按照前面的步骤，我们可以使用具有简单范围的合并通道。在我们的示例中，我们还将在从通道接收之前检查上下文是否完整，以允许提前退出Goroutine。
+
+```
+
+# Producers and consumers
+
+Channels allow us to easily handle a scenario in which multiple consumers receive data from one producer and vice versa.
+
+The case with a single producer and one consumer, as we have already seen, is pretty straightforward:
+
+```
+渠道使我们能够轻松处理多个消费者从一个生产者接收数据的场景，反之亦然。
+正如我们已经看到的，单一生产商和一个消费者的情况非常简单：
+
+func main() {
+    // one producer
+    var ch = make(chan int)
+    go func() {
+        for i := 0; i < 100; i++ {
+            ch <- i
+        }
+        close(ch)
+    }()
+    // one consumer
+    var done = make(chan struct{})
+    go func() {
+        for i := range ch {
+            fmt.Println(i)
+        }
+        close(done)
+    }()
+    <-done
+}
+```
+
+# Multiple producers (N * 1)
+
+Having multiple producers or consumers can be easily handled using wait groups. In the case of multiple producers, all the goroutines will share the same channel:
+
+```
+拥有多个生产者或消费者可以使用等待组轻松处理。在多个生产商的情况下，所有Goroutine将共享同一渠道：
 
 
+// three producer
+var ch = make(chan string)
+wg := sync.WaitGroup{}
+wg.Add(3)
+for i := 0; i < 3; i++ {
+    go func(n int) {
+        for i := 0; i < 100; i++ {
+            ch <- fmt.Sprintln(n, i)
+        }
+        wg.Done()
+    }(i)
+}
+go func() {
+    wg.Wait()
+    close(ch)
+}()
+```
+
+They will use sync.WaitGroup to wait for each producer to finish before closing the channel.
+他们将使用sync.waitgroup在关闭频道之前等待每个制作人完成。
+
+# Multiple consumers (1 * M)
+The same reasoning applies with multiple consumers – they all receive from the same channel in different goroutines:
+
+同样的道理也适用于多个消费者——他们都从同一渠道以不同的方式接收：
+
+```
+func main() {
+    // three consumers
+    wg := sync.WaitGroup{}
+    wg.Add(3)
+    var ch = make(chan string)
+
+    for i := 0; i < 3; i++ {
+        go func(n int) {
+            for i := range ch {
+                fmt.Println(n, i)
+            }
+            wg.Done()
+        }(i)
+    }
+
+    // one producer
+    go func() {
+        for i := 0; i < 10; i++ {
+            ch <- fmt.Sprintln("prod-", i)
+        }
+        close(ch)
+    }()
+
+    wg.Wait()
+}
+
+```
+
+In this case, sync.WaitGroup is used to wait for the application to end.
+在这种情况下，sync.waitgroup用于等待应用程序结束。
+
+# Multiple consumers and producers (N*M)
+The last scenario is where we have an arbitrary number of producers (N) and another arbitrary number of consumers (M).
+
+In this case, we need two waiting groups: one for the producer and another for the consumer:
+
+最后一个场景是，我们有任意数量的生产者（n）和另一个任意数量的消费者（m）。
+在这种情况下，我们需要两个等待组：一个用于生产者，另一个用于消费者：
+
+```
+const (
+    N = 3
+    M = 5
+)
+wg1 := sync.WaitGroup{}
+wg1.Add(N)
+wg2 := sync.WaitGroup{}
+wg2.Add(M)
+var ch = make(chan string)
+
+```
+
+This will be followed by a series of producers and consumers, each one in their own goroutine:
+接下来是一系列的生产者和消费者，每个人都有自己的产品：
+
+```
+for i := 0; i < N; i++ {
+    go func(n int) {
+        for i := 0; i < 10; i++ {
+            ch <- fmt.Sprintf("src-%d[%d]", n, i)
+        }
+        wg1.Done()
+    }(i)
+}
+
+for i := 0; i < M; i++ {
+    go func(n int) {
+        for i := range ch {
+            fmt.Printf("cons-%d, msg %q\n", n, i)
+        }
+        wg2.Done()
+    }(i)
+}
+```
+
+The final step is to wait for the WaitGroup producer to finish its work in order to close the channel.
+Then, we can wait for the consumer channel to let all the messages be processed by the consumers:
+
+``` 
+最后一步是等待waitgroup生产者完成其工作以关闭频道。
+然后，我们可以等待消费者通道让消费者处理所有消息：
+```
+
+```
+wg1.Wait()
+close(ch)
+wg2.Wait()
+```
+
+# Other patterns
+
+So far, we've looked at the most common concurrency patterns that can be used. Now, we will focus on some that are less common but are worth mentioning.
+其他模式
+到目前为止，我们已经研究了可以使用的最常见的并发模式。现在，我们将关注一些不太常见但值得一提的问题。
+
+# Error groups
+The power of sync.WaitGroup is that it allows us to wait for simultaneous goroutines to finish their jobs. We have already looked at how sharing context can allow us to give the goroutines an early exit if it's used correctly. The first concurrent operation, such as send or receive from a channel, is in the select block, together with the context completion channel:
+
+```
+sync.waitgroup的强大之处在于，它允许我们等待同时进行的goroutine完成它们的工作。我们已经研究了共享上下文如何允许我们在正确使用时提前退出Goroutines。第一个并发操作（如从通道发送或接收）与上下文完成通道一起位于选择块中：
+
+func main() {
+    ctx, canc := context.WithTimeout(context.Background(), time.Second)
+    defer canc()
+    wg := sync.WaitGroup{}
+    wg.Add(10)
+    var ch = make(chan int)
+    for i := 0; i < 10; i++ {
+        go func(ctx context.Context, i int) {
+            defer wg.Done()
+            d := time.Duration(rand.Intn(2000)) * time.Millisecond
+            time.Sleep(d)
+            select {
+            case <-ctx.Done():
+                fmt.Println(i, "early exit after", d)
+                return
+            case ch <- i:
+                fmt.Println(i, "normal exit after", d)
+            }
+        }(ctx, i)
+    }
+    go func() {
+        wg.Wait()
+        close(ch)
+    }()
+    for range ch {
+    }
+}
+```
+
+An improvement on this scenario is offered by the experimental golang.org/x/sync/errgroup package.
+
+The built-in goroutines are always of the func() type, but this package allows us to execute func() error concurrently and return the first error that's received from the various goroutines.
+
+This is very useful in scenarios where you launch more goroutines together and receive the first error. The errgroup.Group type can be used as a zero value, and its Do method takes func() error as an argument and launches the function concurrently.
+
+The Wait method either waits for all the functions to finish successfully and returns nil, or it returns the first error that comes from any of the functions.
+
+Let's create an example that defines a URL visitor, that is, a function that gets a URL string and returns func() error, which makes the call:
+
+```
+实验golang.org/x/sync/errgroup包提供了对这种情况的改进。
+内置goroutines始终是func（）类型，但此包允许我们同时执行func（）错误，并返回从各种goroutines接收到的第一个错误。
+这在一起启动更多goroutine并接收第一个错误的场景中非常有用。errGroup.Group类型可以用作零值，其do方法将func（）错误作为参数，并同时启动函数。
+wait方法要么等待所有函数成功完成并返回nil，要么返回来自任何函数的第一个错误。
+让我们创建一个定义URL访问者的示例，即获取URL字符串并返回func（）错误的函数，该函数使调用：
+
+
+func visitor(url string) func() error {
+    return func() (err error) {
+        s := time.Now()
+        defer func() {
+            log.Println(url, time.Since(s), err)
+        }()
+        var resp *http.Response
+        if resp, err = http.Get(url); err != nil {
+            return
+        }
+        return resp.Body.Close()
+    }
+}
+```
+
+We can use it directly with the Go method and wait. This will return the error that was caused by the invalid URL:
+我们可以直接使用Go方法并等待。这将返回由无效URL引起的错误：
+
+```
+func main() {
+    eg := errgroup.Group{}
+    var urlList = []string{
+        "http://www.golang.org/",
+        "http://invalidwebsite.hey/",
+        "http://www.google.com/",
+    }
+    for _, url := range urlList {
+        eg.Go(visitor(url))
+    }
+    if err := eg.Wait(); err != nil {
+        log.Fatalln("Error:", err)
+    }
+}
+```
+
+The error group also allows us to create a group, along with a context, with the WithContext function. This context gets cancelled when the first error is received. The context's cancellation enables the Wait method to return right away, but it also allows an early exit in the goroutines in your functions.
+
+We can create a similar func() error creator that will send values into a channel until the context is closed. We will introduce a small chance (1%) of raising an error:
+
+错误组还允许我们使用withContext函数创建一个组以及一个上下文。当收到第一个错误时，此上下文将被取消。上下文的取消允许wait方法立即返回，但它也允许在函数的goroutines中提前退出。
+我们可以创建一个类似的func（）错误创建者，将值发送到一个通道中，直到上下文关闭。我们将引入引发错误的小概率（1%）：
+
+```
+func sender(ctx context.Context, ch chan<- string, n int) func() error {
+    return func() (err error) {
+        for i := 0; ; i++ {
+            if rand.Intn(100) == 42 {
+                return errors.New("the answer")
+            }
+            select {
+            case ch <- fmt.Sprintf("[%d]%d", n, i):
+            case <-ctx.Done():
+                return nil
+            }
+        }
+    }
+}
+
+
+```
+
+We will generate an error group and a context with the dedicated function and use it to launch several instances of the function. We will receive this in a separate goroutine while we wait for the group. After the wait is over, we will make sure that there are no more values being sent to the channel (this would cause a panic) by waiting an extra second:
+
+```
+我们将使用专用函数生成一个错误组和一个上下文，并使用它来启动函数的几个实例。我们将在单独的Goroutine中接收此消息，同时等待团队。等待结束后，我们将等待一秒钟，以确保没有更多的值发送到通道（这将导致恐慌）：
+
+func main() {
+    eg, ctx := errgroup.WithContext(context.Background())
+    ch := make(chan string)
+    for i := 0; i < 10; i++ {
+        eg.Go(sender(ctx, ch, i))
+    }
+    go func() {
+        for s := range ch {
+            log.Println(s)
+        }
+    }()
+    if err := eg.Wait(); err != nil {
+        log.Println("Error:", err)
+    }
+    close(ch)
+    log.Println("waiting...")
+    time.Sleep(time.Second)
+}
+```
+
+As expected, thanks to the select statement within the context, the application runs seamlessly and does not panic.
+正如预期的那样，多亏了上下文中的select语句，应用程序可以无缝运行，不会死机。
+
+# Leaky bucket
+We saw how to build a rate limiter using ticker in the previous chapters: by using time.Ticker to force a client to await its turn in order to get served. There is another take on rate limiting of services and libraries that's known as the leaky bucket. The name evokes an image of a bucket with a few holes in it. If you are filling it, you have to be careful to not put too much water into the bucket, otherwise it's going to overflow. Before adding more water, you need to wait for the level to drop – the speed at which this happens will depend on the size of the bucket and the number of the holes it has. We can easily understand what this concurrency pattern does by taking a look at the following analogy:
+
+ The water going through the holes represents requests that have been completed.
+The water that's overflowing from the bucket represents the requests that have been discarded.
+The bucket will be defined by two attributes:
+
+Rate: The ideal amount of requests per time if the frequency of requests is lower.
+Capacity: The number of requests that can be done at the same time before the resource turns unresponsive temporarily.
+The bucket has a maximum capacity, so when requests are made with a frequency higher than the rate specified, this capacity starts dropping, just like when you're putting too much water in and the bucket starts to overflow. If the frequency is zero or lower than the rate, the bucket will slowly gain its capacity, and so the water will be slowly drained.
+
+The data structure of the leaky bucket will have a capacity and a counter for the requests that are available. This counter will be the same as the capacity on creation, and will drop each time requests are executed. The rate specifies how often the status needs to be reset to the capacity:
+
+```
+漏桶
+在前面的章节中，我们看到了如何使用ticker构建一个限速器：通过使用time.ticker来强制客户等待它的轮到以获得服务。还有另一种对服务和库的速率限制，称为漏桶。这个名字让人想起一个有几个洞的桶。如果你在装水，你必须小心不要往桶里放太多的水，否则水会溢出来。在添加更多的水之前，您需要等待水位下降——下降的速度将取决于水桶的大小和水桶的孔数。通过查看以下类比，我们可以很容易地理解这种并发模式的作用：
+穿过孔的水代表已完成的请求。
+从桶中溢出的水表示已丢弃的请求。
+桶将由两个属性定义：
+速率：如果请求频率较低，则每次请求的理想数量。
+容量：在资源暂时失去响应之前，可以同时执行的请求数。
+桶有一个最大的容量，所以当请求的频率高于指定的速率时，这个容量就会开始下降，就像你往桶里放了太多水，桶就开始溢出一样。如果频率为零或低于速率，则桶将缓慢地获得其容量，因此水将缓慢地排出。
+漏桶的数据结构将有一个容量和一个计数器，用于处理可用的请求。此计数器将与创建时的容量相同，并将在每次执行请求时删除。速率指定状态需要重置为容量的频率：
+
+type bucket struct {
+    capacity uint64
+    status uint64
+}
+```
+
+When creating a new bucket, we should also take care of the status reset. We can use a goroutine for this and use a context to terminate it correctly. We can create a ticker using the rate and then use these ticks to reset the status. We need to use the atomic package to ensure it is thread-safe:
+
+```
+当创建一个新的bucket时，我们还应该注意状态重置。我们可以为此使用goroutine，并使用上下文来正确地终止它。我们可以使用速率创建一个ticker，然后使用这些ticks重置状态。我们需要使用原子包来确保它是线程安全的：
+
+func newBucket(ctx context.Context, cap uint64, rate time.Duration) *bucket {
+    b := bucket{capacity: cap, status: cap}
+    go func() {
+        t := time.NewTicker(rate)
+        for {
+            select {
+            case <-t.C:
+                atomic.StoreUint64(&b.status, b.capacity)
+            case <-ctx.Done():
+                t.Stop()
+                return
+            }
+        }
+    }()
+    return &b
+}
+```
+
+When we're adding to the bucket, we can check the status and act accordingly:
+
+If the status is 0, we cannot add anything.
+If the amount to add is higher than the availability, we add what we can.
+We add the full amount otherwise:
+
+```
+当我们添加到bucket时，我们可以检查状态并相应地执行以下操作：
+如果状态为0，则无法添加任何内容。
+如果要添加的数量高于可用性，我们将添加可以添加的内容。
+我们加上全部金额，否则：
+
+func (b *bucket) Add(n uint64) uint64 {
+    for {
+        r := atomic.LoadUint64(&b.status)
+        if r == 0 {
+            return 0
+        }
+        if n > r {
+            n = r
+        }
+        if !atomic.CompareAndSwapUint64(&b.status, r, r-n) {
+            continue
+        }
+        return n
+    }
+}
+```
+
+We are using a loop to try atomic swap operations until they succeed to ensure that what we get with the Load operation doesn't change when we are doing a compare and swap (CAS).
+
+The bucket can be used in a client that will try to add a random amount to the bucket and will log its result:
+
+```
+我们使用一个循环来尝试原子交换操作，直到它们成功为止，以确保在进行比较和交换（CAS）时，加载操作所获得的内容不会改变。
+该存储桶可用于将尝试向存储桶中添加随机数量并记录其结果的客户端：
+
+
+type client struct {
+    name string
+    max int
+    b *bucket
+    sleep time.Duration
+}
+
+func (c client) Run(ctx context.Context, start time.Time) {
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            n := 1 + rand.Intn(c.max-1)
+            time.Sleep(c.sleep)
+            e := time.Since(start).Seconds()
+            a := c.b.Add(uint64(n))
+            log.Printf("%s tries to take %d after %.02fs, takes  
+                %d", c.name, n, e, a)
+        }
+    }
+}
+```
+
+We can use more clients concurrently so that having concurrent access to resources will have the following result:
+
+Some goroutines will be adding what they expect to the bucket.
+One goroutine will finally fill the bucket by adding a quantity that is equal to the remaining capacity, even if the amount that they are trying to add is higher.
+The other goroutines will not be able to add to the bucket until the capacity is reset:
+
+```
+我们可以同时使用更多的客户机，这样并发访问资源将产生以下结果：
+一些Goroutine将把他们期望的添加到桶中。
+一个goroutine最终会通过添加一个等于剩余容量的数量来填充bucket，即使他们尝试添加的数量更高。
+在重置容量之前，其他goroutine将无法添加到存储桶：
+
+
+func main() {
+    ctx, canc := context.WithTimeout(context.Background(), time.Second)
+    defer canc()
+    start := time.Now()
+    b := newBucket(ctx, 10, time.Second/5)
+    t := time.Second / 10
+    for i := 0; i < 5; i++ {
+        c := client{
+            name: fmt.Sprint(i),
+            b: b,
+            sleep: t,
+            max: 5,
+        }
+        go c.Run(ctx, start)
+    }
+    <-ctx.Done()
+}
+```
+
+Sequencing
+In concurrent scenarios with multiple goroutines, we may need to have a synchronization between goroutines, such as in a scenario where each goroutine needs to wait for its turn after sending. 
+
+A use case for this scenario could be a turn-based application wherein different goroutines are sending messages to the same channel, and each one of them has to wait until all the others have finished before they can send it again.
+
+A very simple implementation of this scenario can be obtained using private channels between the main goroutine and the senders. We can define a very simple structure that carries both messages and a Wait channel. It will have two methods – one for marking the transaction as done and another one that waits for such a signal – when it uses a channel underneath. The following method shows this:
+
+```
+排序
+在具有多个goroutine的并发场景中，我们可能需要在goroutine之间进行同步，例如在发送后每个goroutine需要等待轮到它的场景中。
+这个场景的一个用例可以是一个基于turn的应用程序，其中不同的goroutine将消息发送到同一个通道，并且每个goroutine必须等到其他所有goroutine完成后才能再次发送消息。
+这个场景的一个非常简单的实现可以通过主goroutine和发送者之间的专用通道获得。我们可以定义一个非常简单的结构，它同时承载消息和等待通道。当它使用下面的通道时，它将有两种方法——一种是将事务标记为已完成，另一种是等待这样的信号。以下方法显示了这一点：
+
+type msg struct {
+    value string
+    done chan struct{}
+}
+
+func (m *msg) Wait() {
+    <-m.done
+}
+
+func (m *msg) Done() {
+    m.done <- struct{}{}
+}
+```
+
+We can create a source of messages with a generator. We can use a random delay with the send operation. After each send, we wait for the signal that is obtained by calling the Done method. We always use context to keep everything free from leaks:
+我们可以使用生成器创建消息源。我们可以对发送操作使用随机延迟。每次发送后，我们都等待通过调用done方法获得的信号。我们始终使用上下文来防止所有内容泄漏：
+
+```
+func send(ctx context.Context, v string) <-chan msg {
+    ch := make(chan msg)
+    go func() {
+        done := make(chan struct{})
+        for i := 0; ; i++ {
+            time.Sleep(time.Duration(float64(time.Second/2) * rand.Float64()))
+            m := msg{fmt.Sprintf("%s msg-%d", v, i), done}
+            select {
+            case <-ctx.Done():
+                close(ch)
+                return
+            case ch <- m:
+                m.Wait()
+            }
+        }
+    }()
+    return ch
+}
+```
+
+We can use a fan-in to put all of the channels into one, singular channel:
+我们可以使用扇入将所有通道放在一个单独的通道中：
+
+```
+func merge(ctx context.Context, sources ...<-chan msg) <-chan msg {
+    ch := make(chan msg)
+    go func() {
+        <-ctx.Done()
+        close(ch)
+    }()
+    for i := range sources {
+        go func(i int) {
+            for {
+                select {
+                case v := <-sources[i]:
+                    select {
+                    case <-ctx.Done():
+                        return
+                    case ch <- v:
+                    }
+                }
+            }
+        }(i)
+    }
+    return ch
+}
+```
+
+The main application will be receiving from the merged channel until it's closed. When it receives one message from each channel, the channel will be blocked, waiting for the Done method signal to be called by the main goroutine.
+
+This specific configuration will allow the main goroutine to receive just one message from each channel. When the message count reaches the number of goroutines, we can call Done from the main goroutine and reset the list so that the other goroutines will be unlocked and be able to send messages again:
+
+```
+主应用程序将从合并的通道接收，直到关闭。当它从每个通道接收到一条消息时，通道将被阻塞，等待主goroutine调用done方法信号。
+这种特定的配置将允许主goroutine仅从每个通道接收一条消息。当消息计数达到goroutine的数目时，我们可以从主goroutine调用done并重置列表，以便其他goroutine将被解锁并能够再次发送消息：
+
+func main() {
+    ctx, canc := context.WithTimeout(context.Background(), time.Second)
+    defer canc()
+    sources := make([]<-chan msg, 5)
+    for i := range sources {
+        sources[i] = send(ctx, fmt.Sprint("src-", i))
+    }
+    msgs := make([]msg, 0, len(sources))
+    start := time.Now()
+    for v := range merge(ctx, sources...) {
+        msgs = append(msgs, v)
+        log.Println(v.value, time.Since(start))
+        if len(msgs) == len(sources) {
+            log.Println("*** done ***")
+            for _, m := range msgs {
+                m.Done()
+            }
+            msgs = msgs[:0]
+            start = time.Now()
+        }
+    }
+}
+```
+
+Running the application will result in all the goroutines sending a message to the main one once. Each of them will be waiting for everyone to send their message. Then, they will start sending messages again. This results in messages being sent in rounds, as expected. 
+
+```
+运行应用程序将导致所有goroutine向主应用程序发送一次消息。他们每个人都会等待每个人发送他们的信息。然后，他们将再次开始发送消息。这将导致消息按预期的顺序发送。
+```
+
+Summary
+In this chapter, we looked at some specific concurrency patterns for our applications. We learned that generators are functions that return channels, and also feed such channels with data and close them when there is no more data. We also saw that we can use a context to allow the generator to exit early.
+
+Next, we focused on pipelines, which are stages of execution that use channels for communication. They can either be source, which doesn't require any input; destination, which doesn't return a channel; or intermediate, which receives a channel as input and returns one as output.
+
+Another pattern is the multiplexing and demultiplexing one, which consists of spreading a channel to different goroutines and combining several channels into one. It is often referred to as fan-out fan-in, and it allows us to execute different operations concurrently on a set of data.
+
+Finally, we learned how to implement a better version of the rate limiter called leaky bucket, which limits the number of requests in a specific amount of time. We also looked at the sequencing pattern, which uses a private channel to signal to all of the sending goroutines when they are allowed to send data again.
+
+In this next chapter, we are going to introduce the first of two extra topics that were presented in the Sequencing section. It is here that we will demonstrate how to use reflection to build generic code that adapts to any user-provided type.
+
+总结
+在本章中，我们研究了应用程序的一些特定并发模式。我们了解到生成器是返回通道的函数，也向这些通道提供数据，并在没有更多数据时关闭它们。我们还看到，我们可以使用上下文来允许生成器提前退出。
+接下来，我们将重点放在管道上，管道是使用通道进行通信的执行阶段。它们可以是源，不需要任何输入；目的地，不返回通道；或者中间，接收通道作为输入，返回通道作为输出。
+另一种模式是多路复用和解复用模式，它包括将一个信道扩展到不同的goroutine，并将多个信道组合成一个信道。它通常被称为扇出扇入，它允许我们对一组数据同时执行不同的操作。
+最后，我们学习了如何实现一个更好版本的速率限制器LeakyBucket，它在特定的时间内限制了请求的数量。我们还研究了排序模式，它使用一个专用通道向所有发送goroutine发送信号，当它们被允许再次发送数据时。
+在下一章中，我们将介绍排序部分中介绍的另外两个主题中的第一个。在这里，我们将演示如何使用反射来构建适合任何用户提供类型的通用代码。
+
+
+# Questions
+What is a generator? What are its responsibilities?
+How could you describe a pipeline?
+What type of stage gets a channel and returns one?
+What is the difference between fan-in and fan-out?
+
+
+问题
+什么是生成器？它的职责是什么？
+你如何描述一个管道？
+哪种类型的舞台可以获得频道并返回频道？
+扇入和扇出有什么区别？
 
