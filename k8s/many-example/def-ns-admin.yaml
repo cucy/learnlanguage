@@ -1,0 +1,11 @@
+apiVersion: v1
+clusters: []
+contexts:
+- context:
+    cluster: kubernetes
+    user: def-admin-ns
+  name: def-ns-admi@kubernetes
+current-context: ""
+kind: Config
+preferences: {}
+users: []

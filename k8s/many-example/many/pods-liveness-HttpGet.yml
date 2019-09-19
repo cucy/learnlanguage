@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: pods-liveness-httpget
+  name: pods-liveness-httpget
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: pods-liveness-httpget
+  template:
+    metadata:
+      labels:
+        run: pods-liveness-httpget
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: IfNotPresent
+        name: pods-liveness-httpget
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-nginx-headless
+spec:
+  selector:
+    app: service-nginx-headless
+    role: test
+  # type 默认是ClusterIp
+  # ClusterIP 自动分配
+  clusterIP: None # 不给cluster,则为headless服务
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP

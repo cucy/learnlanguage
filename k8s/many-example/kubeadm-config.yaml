@@ -1,0 +1,27 @@
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "ipvs"
+---
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: ClusterConfiguration
+kubernetesVersion: v1.15.0
+apiServer:
+    certSANs:
+    - "192.168.1.45"
+    extraArgs:
+        allow-privileged: "true"
+        feature-gates: "VolumeSnapshotDataSource=true,CSINodeInfo=true,    CSIDriverRegistry=true"
+controlPlaneEndpoint: "192.168.1.45:6443"
+etcd:
+    local:
+        dataDir: /data1/etcd
+networking:
+    # This CIDR is a Canal default. Substitute or remove for your CNI provider.
+    podSubnet: "10.244.0.0/16"
+controllerManager:
+    extraArgs:
+        address: 0.0.0.0
+scheduler:
+    extraArgs:
+        address: 0.0.0.0
+imageRepository: gcr.azk8s.cn/google-containers

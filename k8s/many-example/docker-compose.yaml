@@ -1,0 +1,117 @@
+---
+version: "2"
+services:
+  nginx-php-fpm:
+    hostname: nginxfpm.zrd.com
+    image: registry.cn-beijing.aliyuncs.com/sanhao-sh/nginx-php-fpm
+    ports:
+      - 9000:9000
+      #- 9001:9001
+      - 80:80
+    networks:
+      fasti_net:
+        ipv4_address: "192.63.0.31"
+    extra_hosts:
+      - "nginxfpm.zrd.com:192.63.0.31"
+      - "api.xqxtzrd.com:192.63.0.35"
+      - "m.xqxtzrd.com:192.63.0.31"
+      - "admin.xqxtzrd.com:192.63.0.31"
+      - "www.xqxtzrd.com:192.63.0.31"
+      - "redis.zrd.com:192.63.0.32"
+      - "mysql.zrd.com:192.63.0.33"
+      - "activemq.zrd.com:192.63.0.34"
+      - "nginx_fpm_api.zrd.com:192.63.0.35"
+
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d/:rw
+      - /tmp/wwwroot:/tmp/wwwroot:rw
+
+  api:
+    hostname: nginx_fpm_api.zrd.com
+    image: registry.cn-beijing.aliyuncs.com/sanhao-sh/nginx-php-fpm
+    volumes:
+      - ./api_conf.d:/etc/nginx/conf.d/:rw
+      - /tmp/wwwroot:/tmp/wwwroot:rw
+
+    extra_hosts:
+      - "nginxfpm.zrd.com:192.63.0.31"
+      - "api.xqxtzrd.com:192.63.0.35"
+      - "m.xqxtzrd.com:192.63.0.31"
+      - "admin.xqxtzrd.com:192.63.0.31"
+      - "www.xqxtzrd.com:192.63.0.31"
+      - "redis.zrd.com:192.63.0.32"
+      - "mysql.zrd.com:192.63.0.33"
+      - "activemq.zrd.com:192.63.0.34"
+      - "nginx_fpm_api.zrd.com:192.63.0.35"
+    networks:
+      fasti_net:
+        ipv4_address: "192.63.0.35"
+
+  redis:
+    image: redis:3-alpine3.8
+    hostname: redis.zrd.com
+    command: redis-server --requirepass abc123
+    ports:
+      - 6379:6379
+    networks:
+      fasti_net:
+        ipv4_address: "192.63.0.32"
+    extra_hosts:
+      - "nginxfpm.zrd.com:192.63.0.31"
+      - "api.xqxtzrd.com:192.63.0.35"
+      - "m.xqxtzrd.com:192.63.0.31"
+      - "admin.xqxtzrd.com:192.63.0.31"
+      - "www.xqxtzrd.com:192.63.0.31"
+      - "redis.zrd.com:192.63.0.32"
+      - "mysql.zrd.com:192.63.0.33"
+      - "activemq.zrd.com:192.63.0.34"
+      - "nginx_fpm_api.zrd.com:192.63.0.35"
+  mysql:
+    image: mysql:5.5
+    hostname: mysql.zrd.com
+    #    command: --default-authentication-plugin=mysql_native_password # 5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    ports:
+      - 3306:3306
+    networks:
+      fasti_net:
+        ipv4_address: "192.63.0.33"
+    extra_hosts:
+      - "nginxfpm.zrd.com:192.63.0.31"
+      - "api.xqxtzrd.com:192.63.0.35"
+      - "m.xqxtzrd.com:192.63.0.31"
+      - "admin.xqxtzrd.com:192.63.0.31"
+      - "www.xqxtzrd.com:192.63.0.31"
+      - "redis.zrd.com:192.63.0.32"
+      - "mysql.zrd.com:192.63.0.33"
+      - "activemq.zrd.com:192.63.0.34"
+      - "nginx_fpm_api.zrd.com:192.63.0.35"
+  activemq:
+    image: rmohr/activemq:5.14.0-alpine
+    hostname: activemq.zrd.com
+    shm_size: 230M
+    ports:
+      - 8161:8161
+      - 61613:61613
+    networks:
+      fasti_net:
+        ipv4_address: "192.63.0.34"
+    extra_hosts:
+      - "nginxfpm.zrd.com:192.63.0.31"
+      - "api.xqxtzrd.com:192.63.0.35"
+      - "m.xqxtzrd.com:192.63.0.31"
+      - "admin.xqxtzrd.com:192.63.0.31"
+      - "www.xqxtzrd.com:192.63.0.31"
+      - "redis.zrd.com:192.63.0.32"
+      - "mysql.zrd.com:192.63.0.33"
+      - "activemq.zrd.com:192.63.0.34"
+      - "nginx_fpm_api.zrd.com:192.63.0.35"
+networks:
+  fasti_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.63.0.0/16"
+...

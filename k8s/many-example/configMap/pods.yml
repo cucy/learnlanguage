@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: t
+  name: t
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: t
+  template:
+    metadata:
+      labels:
+        run: t
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: IfNotPresent
+        name: t
+        env: 
+        - name: NGINX_PORT
+          valueFrom: 
+            configMapKeyRef:
+              name: ngcfg
+              key: nginx_port
+        - name: NGINX_SERVER_NAME
+          valueFrom: 
+            configMapKeyRef:
+              name: ngcfg
+              key: server_name

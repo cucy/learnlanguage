@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-myapp
+spec:
+  selector:
+    app: redis-myapp
+    role: test
+  type: NodePort
+  # type 默认是ClusterIp
+  # ClusterIP 自动分配
+  ports:
+  - port: 6379 
+    targetPort: 6379
+    nodePort: 32766 # 如果不指定会自动分配
+    protocol: TCP
+
