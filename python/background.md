@@ -1,4 +1,9 @@
+
+
 # python   常驻内存
+
+
+https://www.journaldev.com/16152/python-daemon-thread
 
 ```shell
 #!/bin/sh
