@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: log-stor
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: log-stor
+    spec:
+      containers:
+      - name: redis
+        image: redis:4-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: redis
+          containerPort: 6379
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zrdapp-ds
+  
+spec:
+  selector:
+    matchLabels:
+      app: for-elk-filebeat
+      release: test
+  template:
+    metadata:
+      labels:
+        app: for-elk-filebeat
+        release: test
+    spec:
+      containers:
+      - name: filebeat
+        image: ikubernetes/filebeat:5.6.5-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REDIS_HOST
+          value: redis.default.svc.cluster.local
+        - name: REDIS_LOG_LEVEL
+          value: info
+

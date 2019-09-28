@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx # 参照pod
+spec:
+  initContainers:
+    - name: install
+      image: busybox
+      command:
+        - "wget"
+        - "-O"
+        - "/tmp/index.html"
+        - "https://www.baidu.com/index.html"
+
+      volumeMounts:
+        - mountPath: /app
+          name: workdir
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+  volumes:
+    - name: workdir
+      emptyDir: {}
+# 有问题的脚本

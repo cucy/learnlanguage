@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-livenessprobe-readinessprobe
+spec:
+   containers:
+     - name: pod-live-readdi-nessprobe
+       image: nginx
+       imagePullPolicy: IfNotPresent
+
+       readinessProbe:
+         httpGet:
+           path: /
+           port: 80
+         initialDelaySeconds: 10 # 等待pods 成功启动10秒后再执行探测
+         periodSeconds: 2 # 每2秒探测一次
+
+
+       livenessProbe:
+         httpGet:
+           path: /
+           port: 80
+         initialDelaySeconds: 10 # 等待pods 成功启动10秒后再执行探测
+         periodSeconds: 2 # 每2秒探测一次

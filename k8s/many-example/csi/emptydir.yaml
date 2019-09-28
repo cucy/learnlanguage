@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: mypvtest
+  name: mypvtest
+spec:
+  containers:
+    - image: busybox
+      imagePullPolicy: IfNotPresent
+      ports:
+      - name: http
+        containerPort: 80
+      name: mypvtest
+      volumeMounts:
+      - name: html
+        mountPath: /tmp/
+      command: ['/bin/httpd', '-f', '-h /tmp']
+  volumes:
+  - name: html
+    emptyDir: {} # 大小不限制  
+
+
+# 有问题的command 会卡容器

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-head-less
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: service-nginx-headless
+      role: test
+  template:
+    metadata:
+      labels:
+        app: service-nginx-headless
+        role: test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: nginxport
+          containerPort: 80

@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-flag # 参照pod
+  labels:
+    security: "S1"
+    app: "nginx"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-pod-affinity
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: security
+                operator: NotIn  # NotIn, In
+                values:
+                  - S1
+          topologyKey: kubernetes.io/hostname
+  containers:
+    - name: busybox
+      image: busybox
+
+
+
+
+# 根据正在运行的pod进行匹配调度, 比如互斥, 如果有DB或者资源占用比较高,禁止对此节点进行调度

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zrdapp-dep
+  
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zrdapp
+      release: prod1
+  template:
+    metadata:
+      labels:
+        app: zrdapp
+        release: prod1
+    spec:
+      containers:
+      - name: zrdapp
+        image: nginx
+        ports:
+        - name: http
+          containerPort: 80

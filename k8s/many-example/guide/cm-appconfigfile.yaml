@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-appconfigfiles
+
+data:
+  key-somejosn: |  {"name":1111111, 
+  "grade":"一些信息"
+  }

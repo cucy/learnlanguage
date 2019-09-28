@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: pod-poststart-action
+spec:
+  containers:
+  - name: pod-poststart-action
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    lifecycle:
+      postStart:  # 启动后动作
+        exec:
+          command:  ['/bin/sh', '-c', 'mkdir -p /data/nginx/web;echo nginx web >> /data/nginx/web/index.html']
+    command: ['/bin/sh', '-c' , 'sleep 3999']
+
+
+# command 命令不可依赖exec.command 生成的内容, command会并行运行
+

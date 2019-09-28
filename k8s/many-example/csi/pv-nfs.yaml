@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv001
+  # namespace: default 不能定义名称空间, 其是全局资源
+  labels:
+    name: pv001
+spec:
+  nfs:
+    path: /nfs1/v1
+    server: k8s-slave1-90
+  accessModes: 
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+--- 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv002
+  # namespace: default 不能定义名称空间, 其是全局资源
+  labels:
+    name: pv002
+spec:
+  nfs:
+    path: /nfs1/v2
+    server: k8s-slave1-90
+  accessModes: 
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+    
+--- 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv003
+  # namespace: default 不能定义名称空间, 其是全局资源
+  labels:
+    name: pv003
+spec:
+  nfs:
+    path: /nfs1/v3
+    server: k8s-slave1-90
+  accessModes: 
+  - ReadWriteOnce
+  - ReadOnlyMany 
+  - ReadWriteMany
+  capacity:
+    storage: 3Gi
+--- 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv004
+  # namespace: default 不能定义名称空间, 其是全局资源
+  labels:
+    name: pv004
+spec:
+  nfs:
+    path: /nfs1/v4
+    server: k8s-slave1-90
+  accessModes: 
+  - ReadWriteOnce
+  capacity:
+    storage: 2Gi
+--- 

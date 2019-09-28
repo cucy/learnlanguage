@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      release: prod
+  template:
+    metadata:
+      labels:
+        app: myapp
+        release: prod
+    spec:
+      containers:
+      - name: nginx-ingress-daemo
+        image: ikubernetes/myapp:v2
+        ports:
+        - name: http
+          containerPort: 80
+
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-demo-svc
+spec:
+  selector:
+    app: myapp
+    release: prod
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+

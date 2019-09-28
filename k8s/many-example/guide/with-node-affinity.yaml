@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-node-affinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution: # 硬性亲和,必须满足
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+      preferredDuringSchedulingIgnoredDuringExecution: # 软亲和
+        - preference:
+            matchExpressions:
+              - key: disk-stype
+                operator: In
+                values:
+                  - ssd
+          weight: 1
+  containers:
+    - name: nginx
+      image:  nginx
+

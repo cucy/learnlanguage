@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginxcfg-from-nginx
+spec:
+  containers:
+  - name: zrdapp
+    image: nginx
+    imagePullPolicy: IfNotPresent
+    ports:
+    - name: http
+      containerPort: 80
+    volumeMounts:
+    - name: nginxconf
+      mountPath: /tmp/
+      readOnly: true
+
+  volumes:
+  - name: nginxconf
+    configMap:
+      name: nginx-conf

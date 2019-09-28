@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.helloworld";
+option java_outer_classname = "HelloWorldProto";
+option objc_class_prefix = "HLW";
+
+// 定义包名(模块名)
+package helloworld;
+
+// 定义发起请求的数据格式
+message HelloRequest {
+    string name = 1;
+}
+message HelloResponse {
+    string message = 1;
+}
+// 定义类名(接口)
+service Greeter {
+    // 定义方法 (SayHello)
+    rpc SayHello (HelloRequest) returns (HelloResponse) {
+    }
+    // 定义另一个方法 (SayHelloAgain)
+    rpc SayHelloAgain (HelloRequest) returns (HelloResponse) {
+    }
+}
