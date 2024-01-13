@@ -95,10 +95,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
-
+assets/
 # mkdocs documentation
 /site
-
+*.image
 # mypy
 .mypy_cache/
 __pycache__

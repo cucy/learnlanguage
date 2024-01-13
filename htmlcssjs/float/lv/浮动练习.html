@@ -1,10 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>浮动练习</title>
+    <style>
+        .father {
+            width: 800px;
+            height: 600px;
+            border: 2px #e5e5e5 solid;
+        }
+
+        .h, .f {
+            width: 800px;
+            height: 100px;
+            background-color: lightskyblue;
+            border: 2px #0078e7 solid;
+            margin: 2.5px;
+            float: left;
+                    box-sizing: border-box;
+        }
+
+
+        .son1 {
+            background-color: hotpink;
+            width: 595px;
+            height: 400px;
+            float: left;
+              border: 2px forestgreen solid;
+              margin: 2.5px;
+            box-sizing: border-box;
+        }
+        .son2 {
+            background-color: hotpink;
+            width: 200px;
+            height: 400px;
+            float: left;
+                          border: 2px forestgreen solid;
+
+             box-sizing: border-box;
+        }
+
+
+        #back-to-top {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    bottom: 80px;
+    right: 36px;
+    box-shadow: 0 0 2px 0 rgba(0,0,0,.1);
+    cursor: pointer;
+}
+    </style>
 </head>
 <body>
-$END$
+
+<div class="father">
+    <div class="h">h1</div>
+    <div class="son1"></div>
+    <div class="son2"></div>
+    <div class="f">f1</div>
+
+    <div id="back-to-top"></div>
+</div>
+
 </body>
 </html>
